@@ -1,35 +1,48 @@
-STACK SEGMENT PARA 'STACK'
+STACK SEGMENT PARA STACK
 	DB 64 DUP (' ')
 STACK ENDS
 DATA SEGMENT PARA 'DATA'
-    WINDOW_WIDTH DW 140H 	; video mode width
-	WINDOW_HEIGHT DW 0C8H 	; height 
-    WINDOW_BOUNDS DW 6	   ;to check for collisons early
-   
-    TIME_AUX  DB 0			; save the current second (dl)
-   
-     BALL_X  DW 0AH 			; current x position of the ball
-   BALL_Y DW 0AH 			; current y position of the ball
-   
-   BALL_SIZE DW 04H			; ball size (how many pixels in hieght and width)
-   
-   BALL_ORIGINAL_X DW 0A0H 	; intial x position of the ball
-   BALL_ORIGINAL_Y DW 64H   ; intial y position of the ball
-   
-   BALL_X_VELOCITY DW 05H   ;the ball velocity in x
-   BALL_Y_VELOCITY DW 02H  
-   
-   PADDLE_LEFT_X  DW  0AH   ;x position of the left paddle
-   PADDLE_LEFT_Y DW   0AH	
 	
-   PADDLE_RIGHT_X DW 130H   
-   PADDLE_RIGHT_Y DW 0AH    ;y position of the right paddle 
-   
-   PADDLE_WIDTH  DW 05H
-   PADDLE_HEIGHT DW 1FH
-   PADDLE_VELOCITY DW 05H
-   
-DATA ENDS
+	WINDOW_WIDTH DW 140h                 ;the width of the window (320 pixels)
+	WINDOW_HEIGHT DW 0C8h                ;the height of the window (200 pixels)
+	WINDOW_BOUNDS DW 6                   ;variable used to check collisions early
+	
+	TIME_AUX DB 0                        ;variable used when checking if the time has changed
+	GAME_ACTIVE DB 1                     ;is the game active? (1 -> Yes, 0 -> No (game over))
+	EXITING_GAME DB 0
+	WINNER_INDEX DB 0                    ;the index of the winner (1 -> player one, 2 -> player two)
+	CURRENT_SCENE DB 0                   ;the index of the current scene (0 -> main menu, 1 -> game)
+	
+	TEXT_PLAYER_ONE_POINTS DB '0','$'    ;text with the player one points
+	TEXT_PLAYER_TWO_POINTS DB '0','$'    ;text with the player two points
+	TEXT_GAME_OVER_TITLE DB 'GAME OVER','$' ;text with the game over menu title
+	TEXT_GAME_OVER_WINNER DB 'Player 0 won','$' ;text with the winner text
+	TEXT_GAME_OVER_PLAY_AGAIN DB 'Press R to play again','$' ;text with the game over play again message
+	TEXT_GAME_OVER_MAIN_MENU DB 'Press E to exit to main menu','$' ;text with the game over main menu message
+	TEXT_MAIN_MENU_TITLE DB 'MAIN MENU','$' ;text with the main menu title
+	TEXT_MAIN_MENU_SINGLEPLAYER DB 'SINGLEPLAYER - S KEY','$' ;text with the singleplayer message
+	TEXT_MAIN_MENU_MULTIPLAYER DB 'MULTIPLAYER - M KEY','$' ;text with the multiplayer message
+	TEXT_MAIN_MENU_EXIT DB 'EXIT GAME - E KEY','$' ;text with the exit game message
+	
+	BALL_ORIGINAL_X DW 0A0h              ;X position of the ball on the beginning of a game
+	BALL_ORIGINAL_Y DW 64h               ;Y position of the ball on the beginning of a game
+	BALL_X DW 0A0h                       ;current X position (column) of the ball
+	BALL_Y DW 64h                        ;current Y position (line) of the ball
+	BALL_SIZE DW 06h                     ;size of the ball (how many pixels does the ball have in width and height)
+	BALL_VELOCITY_X DW 05h               ;X (horizontal) velocity of the ball
+	BALL_VELOCITY_Y DW 02h               ;Y (vertical) velocity of the ball
+	
+	PADDLE_LEFT_X DW 0Ah                 ;current X position of the left paddle
+	PADDLE_LEFT_Y DW 55h                 ;current Y position of the left paddle
+	PLAYER_ONE_POINTS DB 0              ;current points of the left player (player one)
+	
+	PADDLE_RIGHT_X DW 130h               ;current X position of the right paddle
+	PADDLE_RIGHT_Y DW 55h                ;current Y position of the right paddle
+	PLAYER_TWO_POINTS DB 0             ;current points of the right player (player two)
+	
+	PADDLE_WIDTH DW 06h                  ;default paddle width
+	PADDLE_HEIGHT DW 25h                 ;default paddle height
+	PADDLE_VELOCITY DW 0Fh               ;default paddle velocity
 CODE SEGMENT PARA 'CODE'
 	MAIN PROC FAR
 	 ASSUME   SS:STACK, DS:DATA, CS:CODE
@@ -55,6 +68,7 @@ CODE SEGMENT PARA 'CODE'
 			
 			CALL MOVE_PADDELS          ;move the two paddles (check for pressing of keys)
 			CALL DRAW_PADDELS            ;draw the two paddles with the updated positions
+            CALL DRAW_UI                 ;draw the game User Interface
 			
 			JMP CHECK_TIME   			 ; check again
 	RET
@@ -63,7 +77,7 @@ CODE SEGMENT PARA 'CODE'
 	MOVE_BALL PROC NEAR  ;proccess the movement of the ball
 	;       Move the ball horizontally
 	
-		MOV AX, BALL_X_VELOCITY
+		MOV AX, BALL_VELOCITY_X
 		ADD BALL_X,AX
 		
 		;       Check if the ball has passed the left boundarie (BALL_X < 0 + WINDOW_BOUNDS)
@@ -82,11 +96,11 @@ CODE SEGMENT PARA 'CODE'
 		JMP MOVE_BALL_VERTICALLY 
 		
 		NEG_VELOCITY_X:
-			NEG BALL_X_VELOCITY              ;reverses the horizontal velocity of the ball
+			NEG BALL_VELOCITY_X              ;reverses the horizontal velocity of the ball
 			RET     
  ; move the ball vertically
  MOVE_BALL_VERTICALLY :
-		MOV AX, BALL_Y_VELOCITY
+		MOV AX, BALL_VELOCITY_Y
 		ADD BALL_Y,AX
 		
 		; check for collision if collided we revrse the velocity
@@ -164,7 +178,7 @@ CODE SEGMENT PARA 'CODE'
 		JMP NEG_VELOCITY_X
 		
 		NEG_VELOCITY_Y:
-			NEG BALL_Y_VELOCITY  ;reverse the velocity in Y of the ball (BALL_VELOCITY_Y = - BALL_VELOCITY_Y)
+			NEG BALL_VELOCITY_Y  ;reverse the velocity in Y of the ball (BALL_VELOCITY_Y = - BALL_VELOCITY_Y)
 			RET
 		                         
 			
@@ -356,6 +370,65 @@ CODE SEGMENT PARA 'CODE'
 	
 	RET
 	DRAW_PADDELS ENDP
+    DRAW_UI PROC NEAR
+		
+;       Draw the points of the left player (player one)
+		
+		MOV AH,02h                       ;set cursor position
+		MOV BH,00h                       ;set page number
+		MOV DH,04h                       ;set row 
+		MOV DL,06h						 ;set column
+		INT 10h							 
+		
+		MOV AH,09h                       ;WRITE STRING TO STANDARD OUTPUT
+		LEA DX,TEXT_PLAYER_ONE_POINTS    ;give DX a pointer to the string TEXT_PLAYER_ONE_POINTS
+        
+		INT 21h                          ;print the string 
+		
+;       Draw the points of the right player (player two)
+		
+		MOV AH,02h                       ;set cursor position
+		MOV BH,00h                       ;set page number
+		MOV DH,04h                       ;set row 
+		MOV DL,1Fh						 ;set column
+		INT 10h							 
+		
+		MOV AH,09h                       ;WRITE STRING TO STANDARD OUTPUT
+		LEA DX,TEXT_PLAYER_TWO_POINTS    ;give DX a pointer to the string TEXT_PLAYER_ONE_POINTS
+		INT 21h                          ;print the string 
+		
+		RET
+	DRAW_UI ENDP
+	
+	UPDATE_TEXT_PLAYER_ONE_POINTS PROC NEAR
+		
+		XOR AX,AX
+		MOV AL,PLAYER_ONE_POINTS ;given, for example that P1 -> 2 points => AL,2
+		
+		;now, before printing to the screen, we need to convert the decimal value to the ascii code character 
+		;we can do this by adding 30h (number to ASCII)
+		;and by subtracting 30h (ASCII to number)
+		ADD AL,30h                       ;AL,'2'
+		MOV [TEXT_PLAYER_ONE_POINTS],AL
+		
+		RET
+	UPDATE_TEXT_PLAYER_ONE_POINTS ENDP
+	
+	UPDATE_TEXT_PLAYER_TWO_POINTS PROC NEAR
+		
+		XOR AX,AX
+		MOV AL,PLAYER_TWO_POINTS ;given, for example that P2 -> 2 points => AL,2
+		
+		;now, before printing to the screen, we need to convert the decimal value to the ascii code character 
+		;we can do this by adding 30h (number to ASCII)
+		;and by subtracting 30h (ASCII to number)
+		ADD AL,30h                       ;AL,'2'
+		MOV [TEXT_PLAYER_TWO_POINTS],AL
+		
+		RET
+	UPDATE_TEXT_PLAYER_TWO_POINTS ENDP
+	
+	
 	
 	CLEAR_SCREEN PROC NEAR
 	MOV AH,00H	; set video mode
