@@ -1,59 +1,49 @@
-STACK SEGMENT PARA STACK
+  STACK SEGMENT PARA 'STACK'
 	DB 64 DUP (' ')
 STACK ENDS
 DATA SEGMENT PARA 'DATA'
+    WINDOW_WIDTH DW 280H ; video mode width
+	WINDOW_HEIGHT DW 1E0H	; height 
+    WINDOW_BOUNDS DW 6	   ;to check for collisons early
+   
+    TIME_AUX  DB 0			; save the current second (dl)
+    TEXT_PLAYER_ONE_POINTS DB    '0','$'
+	TEXT_PLAYER_TWO_POINTS DB    '0','$'
+     BALL_X  DW 0AH 			; current x position of the ball
+   BALL_Y DW 0AH 			; current y position of the ball
+   
+   BALL_SIZE DW 09H			; ball size (how many pixels in hieght and width)
+   
+   BALL_ORIGINAL_X DW 0A0H 	; intial x position of the ball
+   BALL_ORIGINAL_Y DW 64H   ; intial y position of the ball
+   
+   BALL_X_VELOCITY DW 09H   ;the ball velocity in x
+   BALL_Y_VELOCITY DW 03H  
+   
+   PADDLE_LEFT_X  DW  0AH   ;x position of the left paddle
+   PADDLE_LEFT_Y DW   0AH	
+   PLAYER_ONE_POINTS DB 00H
 	
-	WINDOW_WIDTH DW 140h                 ;the width of the window (320 pixels)
-	WINDOW_HEIGHT DW 0C8h                ;the height of the window (200 pixels)
-	WINDOW_BOUNDS DW 6                   ;variable used to check collisions early
-	
-	TIME_AUX DB 0                        ;variable used when checking if the time has changed
-	GAME_ACTIVE DB 1                     ;is the game active? (1 -> Yes, 0 -> No (game over))
-	EXITING_GAME DB 0
-	WINNER_INDEX DB 0                    ;the index of the winner (1 -> player one, 2 -> player two)
-	CURRENT_SCENE DB 0                   ;the index of the current scene (0 -> main menu, 1 -> game)
-	
-	TEXT_PLAYER_ONE_POINTS DB '0','$'    ;text with the player one points
-	TEXT_PLAYER_TWO_POINTS DB '0','$'    ;text with the player two points
-	TEXT_GAME_OVER_TITLE DB 'GAME OVER','$' ;text with the game over menu title
-	TEXT_GAME_OVER_WINNER DB 'Player 0 won','$' ;text with the winner text
-	TEXT_GAME_OVER_PLAY_AGAIN DB 'Press R to play again','$' ;text with the game over play again message
-	TEXT_GAME_OVER_MAIN_MENU DB 'Press E to exit to main menu','$' ;text with the game over main menu message
-	TEXT_MAIN_MENU_TITLE DB 'MAIN MENU','$' ;text with the main menu title
-	TEXT_MAIN_MENU_SINGLEPLAYER DB 'SINGLEPLAYER - S KEY','$' ;text with the singleplayer message
-	TEXT_MAIN_MENU_MULTIPLAYER DB 'MULTIPLAYER - M KEY','$' ;text with the multiplayer message
-	TEXT_MAIN_MENU_EXIT DB 'EXIT GAME - E KEY','$' ;text with the exit game message
-	
-	BALL_ORIGINAL_X DW 0A0h              ;X position of the ball on the beginning of a game
-	BALL_ORIGINAL_Y DW 64h               ;Y position of the ball on the beginning of a game
-	BALL_X DW 0A0h                       ;current X position (column) of the ball
-	BALL_Y DW 64h                        ;current Y position (line) of the ball
-	BALL_SIZE DW 06h                     ;size of the ball (how many pixels does the ball have in width and height)
-	BALL_VELOCITY_X DW 05h               ;X (horizontal) velocity of the ball
-	BALL_VELOCITY_Y DW 02h               ;Y (vertical) velocity of the ball
-	
-	PADDLE_LEFT_X DW 0Ah                 ;current X position of the left paddle
-	PADDLE_LEFT_Y DW 55h                 ;current Y position of the left paddle
-	PLAYER_ONE_POINTS DB 0              ;current points of the left player (player one)
-	
-	PADDLE_RIGHT_X DW 130h               ;current X position of the right paddle
-	PADDLE_RIGHT_Y DW 55h                ;current Y position of the right paddle
-	PLAYER_TWO_POINTS DB 0             ;current points of the right player (player two)
-	
-	PADDLE_WIDTH DW 06h                  ;default paddle width
-	PADDLE_HEIGHT DW 25h                 ;default paddle height
-	PADDLE_VELOCITY DW 0Fh               ;default paddle velocity
+   PADDLE_RIGHT_X DW 269H   
+   PADDLE_RIGHT_Y DW 0AH    ;y position of the right paddle 
+   PLAYER_TWO_POINTS DB 00H
+   
+   PADDLE_WIDTH  DW 9H
+   PADDLE_HEIGHT DW 3FH
+   PADDLE_VELOCITY DW 09H
+   
+DATA ENDS
 CODE SEGMENT PARA 'CODE'
 	MAIN PROC FAR
 	 ASSUME   SS:STACK, DS:DATA, CS:CODE
      MOV AX, DATA         ;set address of data segment in ds
      MOV DS, AX
-	CALL CLEAR_SCREEN
+	
 
 		CHECK_TIME:
 			MOV AH,2Ch 					 ;get the system time
 			INT 21h    					 ;CH = hour CL = minute DH = second DL = 1/100 seconds
-			
+			add dl,55
 			CMP DL,TIME_AUX  			 ;is the current time equal to the previous one(TIME_AUX)?
 			JE CHECK_TIME 
 			;if it is the same, check again
@@ -68,8 +58,7 @@ CODE SEGMENT PARA 'CODE'
 			
 			CALL MOVE_PADDELS          ;move the two paddles (check for pressing of keys)
 			CALL DRAW_PADDELS            ;draw the two paddles with the updated positions
-            CALL DRAW_UI                 ;draw the game User Interface
-			
+			CALL DRAW_UI
 			JMP CHECK_TIME   			 ; check again
 	RET
 	MAIN ENDP
@@ -77,7 +66,7 @@ CODE SEGMENT PARA 'CODE'
 	MOVE_BALL PROC NEAR  ;proccess the movement of the ball
 	;       Move the ball horizontally
 	
-		MOV AX, BALL_VELOCITY_X
+		MOV AX, BALL_X_VELOCITY
 		ADD BALL_X,AX
 		
 		;       Check if the ball has passed the left boundarie (BALL_X < 0 + WINDOW_BOUNDS)
@@ -86,21 +75,43 @@ CODE SEGMENT PARA 'CODE'
 		MOV AX,WINDOW_BOUNDS
 		SUB AX,BALL_SIZE
 		CMP BALL_X,AX       	;BALL_X is compared with the left boundarie of the screen (0 + WINDOW_BOUNDS) 
-		JL NEG_VELOCITY_X	
+		JL GIVE_POINTS_TO_PLAYER_TWO	
 		
 		MOV AX,WINDOW_WIDTH ; if it's larger than the width 
 		SUB AX,BALL_SIZE  ;to prevent the bounce before colliding
 		SUB AX,WINDOW_BOUNDS ;to early check before the collisonUNCE
 		CMP BALL_X, AX;
-		JG NEG_VELOCITY_X
+		JG GIVE_POINTS_TO_PLAYER_ONE
 		JMP MOVE_BALL_VERTICALLY 
 		
-		NEG_VELOCITY_X:
-			NEG BALL_VELOCITY_X              ;reverses the horizontal velocity of the ball
-			RET     
+		GIVE_POINTS_TO_PLAYER_ONE:
+		      INC PLAYER_ONE_POINTS
+			  CALL UPDATE_TEXT_PLAYER_ONE_POINTS
+			  CALL NEG_X_VELOCITY
+			  CMP PLAYER_ONE_POINTS,05H
+			  JG GAME_OVER
+			  RET
+			  
+		GIVE_POINTS_TO_PLAYER_TWO:
+		      INC PLAYER_TWO_POINTS
+			  CALL NEG_X_VELOCITY
+			  CALL UPDATE_TEXT_PLAYER_TWO_POINTS
+			  CMP PLAYER_TWO_POINTS,05H
+			  JG GAME_OVER
+			
+			  RET
+			  
+	    GAME_OVER:
+		    MOV PLAYER_ONE_POINTS,00H
+			MOV PLAYER_TWO_POINTS,00H
+			CALL UPDATE_TEXT_PLAYER_ONE_POINTS
+			CALL UPDATE_TEXT_PLAYER_TWO_POINTS
+			RET
+			
+		    
  ; move the ball vertically
  MOVE_BALL_VERTICALLY :
-		MOV AX, BALL_VELOCITY_Y
+		MOV AX, BALL_Y_VELOCITY
 		ADD BALL_Y,AX
 		
 		; check for collision if collided we revrse the velocity
@@ -143,7 +154,7 @@ CODE SEGMENT PARA 'CODE'
 		
 		;If it reaches this point, the ball is colliding with the right paddle
 
-		JMP NEG_VELOCITY_X
+		CALL NEG_X_VELOCITY
 
         ;Check if the ball is colliding with the left paddle
 		
@@ -175,10 +186,10 @@ CODE SEGMENT PARA 'CODE'
 		
 ;       If it reaches this point, the ball is colliding with the left paddle	
 
-		JMP NEG_VELOCITY_X
+		CALL NEG_X_VELOCITY
 		
 		NEG_VELOCITY_Y:
-			NEG BALL_VELOCITY_Y  ;reverse the velocity in Y of the ball (BALL_VELOCITY_Y = - BALL_VELOCITY_Y)
+			NEG BALL_Y_VELOCITY  ;reverse the velocity in Y of the ball (BALL_VELOCITY_Y = - BALL_VELOCITY_Y)
 			RET
 		                         
 			
@@ -189,14 +200,10 @@ CODE SEGMENT PARA 'CODE'
 	MOVE_BALL ENDP
 	
 	
-	RESET_BALL_ORGINAL PROC NEAR
-	    MOV AX,BALL_ORIGINAL_X
-		MOV BALL_X,AX
-		
-		MOV AX,BALL_ORIGINAL_Y
-		MOV BALL_Y,AX
+	NEG_X_VELOCITY PROC NEAR
+	    NEG BALL_X_VELOCITY
 		RET
-	RESET_BALL_ORGINAL ENDP
+	NEG_X_VELOCITY ENDP
 	
 	MOVE_PADDELS PROC NEAR
 		MOV AH,01H
@@ -370,79 +377,60 @@ CODE SEGMENT PARA 'CODE'
 	
 	RET
 	DRAW_PADDELS ENDP
-    DRAW_UI PROC NEAR
-		
-;       Draw the points of the left player (player one)
-		
-		MOV AH,02h                       ;set cursor position
-		MOV BH,00h                       ;set page number
-		MOV DH,04h                       ;set row 
-		MOV DL,06h						 ;set column
-		INT 10h							 
-		
-		MOV AH,09h                       ;WRITE STRING TO STANDARD OUTPUT
-		LEA DX,TEXT_PLAYER_ONE_POINTS    ;give DX a pointer to the string TEXT_PLAYER_ONE_POINTS
-        
-		INT 21h                          ;print the string 
-		
-;       Draw the points of the right player (player two)
-		
-		MOV AH,02h                       ;set cursor position
-		MOV BH,00h                       ;set page number
-		MOV DH,04h                       ;set row 
-		MOV DL,1Fh						 ;set column
-		INT 10h							 
-		
-		MOV AH,09h                       ;WRITE STRING TO STANDARD OUTPUT
-		LEA DX,TEXT_PLAYER_TWO_POINTS    ;give DX a pointer to the string TEXT_PLAYER_ONE_POINTS
-		INT 21h                          ;print the string 
-		
-		RET
-	DRAW_UI ENDP
 	
+	DRAW_UI PROC NEAR
+	; draw player one points
+	MOV AH,02H
+	MOV BH,00H
+	MOV DH,02H
+	MOV DL,0EH
+	INT 10H
+	
+	MOV AH,09H 
+	LEA DX, TEXT_PLAYER_ONE_POINTS
+	INT 21H
+	; draw player two points
+	MOV AH,02H
+	MOV BH,00H
+	MOV DH,02H
+	MOV DL,3FH
+	INT 10H
+	
+	MOV AH,09H 
+	LEA DX, TEXT_PLAYER_TWO_POINTS
+	INT 21H
+	
+	
+	RET
+	DRAW_UI ENDP
 	UPDATE_TEXT_PLAYER_ONE_POINTS PROC NEAR
-		
 		XOR AX,AX
-		MOV AL,PLAYER_ONE_POINTS ;given, for example that P1 -> 2 points => AL,2
-		
-		;now, before printing to the screen, we need to convert the decimal value to the ascii code character 
-		;we can do this by adding 30h (number to ASCII)
-		;and by subtracting 30h (ASCII to number)
-		ADD AL,30h                       ;AL,'2'
-		MOV [TEXT_PLAYER_ONE_POINTS],AL
-		
+		MOV AL,PLAYER_ONE_POINTS
+		ADD AL,30H
+		MOV TEXT_PLAYER_ONE_POINTS,AL
+	
+	
 		RET
 	UPDATE_TEXT_PLAYER_ONE_POINTS ENDP
 	
 	UPDATE_TEXT_PLAYER_TWO_POINTS PROC NEAR
-		
 		XOR AX,AX
-		MOV AL,PLAYER_TWO_POINTS ;given, for example that P2 -> 2 points => AL,2
-		
-		;now, before printing to the screen, we need to convert the decimal value to the ascii code character 
-		;we can do this by adding 30h (number to ASCII)
-		;and by subtracting 30h (ASCII to number)
-		ADD AL,30h                       ;AL,'2'
-		MOV [TEXT_PLAYER_TWO_POINTS],AL
-		
+		MOV AL,PLAYER_TWO_POINTS
+		ADD AL,30H
+		MOV TEXT_PLAYER_TWO_POINTS,AL
 		RET
 	UPDATE_TEXT_PLAYER_TWO_POINTS ENDP
 	
 	
-	
 	CLEAR_SCREEN PROC NEAR
 	MOV AH,00H	; set video mode
-	MOV AL,13H	; 256 color graphics
+	MOV AL,11h	; bw color graphics
 	INT 10H		; excute interrupt
-	MOV AH, 0Bh ; scroll up function
-    MOV BH, 00h ; black
-	  MOV BL, 00h ; black
-	INT 10H
-	MOV AH,0CH	; write pixel
-    MOV AL,	0FH	;white
-	MOV BH,00H	; page number
+
+
 	
 	RET
 	CLEAR_SCREEN ENDP
 CODE ENDS
 END
+		 
