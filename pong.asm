@@ -7,8 +7,14 @@ DATA SEGMENT PARA 'DATA'
     WINDOW_BOUNDS DW 6	   ;to check for collisons early
    
     TIME_AUX  DB 0			; save the current second (dl)
-    TEXT_PLAYER_ONE_POINTS DB    '0','$'
-	TEXT_PLAYER_TWO_POINTS DB    '0','$'
+    GAME_ACTIVE DB 1                     ;is the game active? (1 -> Yes, 0 -> No (game over))
+
+	WINNER_INDEX DB 0                    ;the index of the winner (1 -> player one, 2 -> player two)
+	
+    TEXT_PLAYER_ONE_POINTS DB '0','$'    ;text with the player one points
+	TEXT_PLAYER_TWO_POINTS DB '0','$'    ;text with the player two points
+	TEXT_GAME_OVER_TITLE DB 'GAME OVER','$' ;text with the game over menu title
+	TEXT_GAME_OVER_WINNER DB 'Player 0 won','$' ;text with the winner text
      BALL_X  DW 0AH 			; current x position of the ball
    BALL_Y DW 0AH 			; current y position of the ball
    
@@ -41,6 +47,9 @@ CODE SEGMENT PARA 'CODE'
 	
 
 		CHECK_TIME:
+        
+			CMP GAME_ACTIVE,00h
+			JE SHOW_GAME_OVER
 			MOV AH,2Ch 					 ;get the system time
 			INT 21h    					 ;CH = hour CL = minute DH = second DL = 1/100 seconds
 			add dl,55
@@ -60,8 +69,13 @@ CODE SEGMENT PARA 'CODE'
 			CALL DRAW_PADDELS            ;draw the two paddles with the updated positions
 			CALL DRAW_UI
 			JMP CHECK_TIME   			 ; check again
+            
+			SHOW_GAME_OVER:
+				CALL DRAW_GAME_OVER_MENU
+				JMP CHECK_TIME
 	RET
 	MAIN ENDP
+    
 	
 	MOVE_BALL PROC NEAR  ;proccess the movement of the ball
 	;       Move the ball horizontally
@@ -101,12 +115,26 @@ CODE SEGMENT PARA 'CODE'
 			
 			  RET
 			  
-	    GAME_OVER:
-		    MOV PLAYER_ONE_POINTS,00H
-			MOV PLAYER_TWO_POINTS,00H
-			CALL UPDATE_TEXT_PLAYER_ONE_POINTS
-			CALL UPDATE_TEXT_PLAYER_TWO_POINTS
-			RET
+	    GAME_OVER:                       ;someone has reached 5 points
+			CMP PLAYER_ONE_POINTS,05h    ;check wich player has 5 or more points
+			JNL WINNER_IS_PLAYER_ONE     ;if the player one has not less than 5 points is the winner
+			JMP WINNER_IS_PLAYER_TWO     ;if not then player two is the winner
+			
+			WINNER_IS_PLAYER_ONE:
+				MOV WINNER_INDEX,01h     ;update the winner index with the player one index
+				JMP CONTINUE_GAME_OVER
+			WINNER_IS_PLAYER_TWO:
+				MOV WINNER_INDEX,02h     ;update the winner index with the player two index
+				JMP CONTINUE_GAME_OVER
+				
+			CONTINUE_GAME_OVER:
+				MOV PLAYER_ONE_POINTS,00h   ;restart player one points
+				MOV PLAYER_TWO_POINTS,00h  ;restart player two points
+				CALL UPDATE_TEXT_PLAYER_ONE_POINTS
+				CALL UPDATE_TEXT_PLAYER_TWO_POINTS
+				MOV GAME_ACTIVE,00h            ;stops the game
+				RET	
+
 			
 		    
  ; move the ball vertically
@@ -420,8 +448,51 @@ CODE SEGMENT PARA 'CODE'
 		MOV TEXT_PLAYER_TWO_POINTS,AL
 		RET
 	UPDATE_TEXT_PLAYER_TWO_POINTS ENDP
-	
-	
+    DRAW_GAME_OVER_MENU PROC NEAR        ;draw the game over menu
+    		CALL CLEAR_SCREEN                ;clear the screen before displaying the menu
+	;       Shows the menu title
+		MOV AH,02h                       ;set cursor position
+		MOV BH,00h                       ;set page number
+		MOV DH,04h                       ;set row 
+		MOV DL,04h						 ;set column
+		INT 10h							 
+		
+		MOV AH,09h                       ;WRITE STRING TO STANDARD OUTPUT
+		LEA DX,TEXT_GAME_OVER_TITLE      ;give DX a pointer 
+		INT 21h                          ;print the string
+	;       Shows the winner
+		MOV AH,02h                       ;set cursor position
+		MOV BH,00h                       ;set page number
+		MOV DH,06h                       ;set row 
+		MOV DL,04h						 ;set column
+		INT 10h							 
+		
+		CALL UPDATE_WINNER_TEXT
+		
+		MOV AH,09h                       ;WRITE STRING TO STANDARD OUTPUT
+		LEA DX,TEXT_GAME_OVER_WINNER      ;give DX a pointer 
+		INT 21h                          ;print the string
+		
+
+		
+;       Waits for a key press
+		MOV AH,00h
+		INT 16h
+
+
+		RET
+		
+		
+			
+	DRAW_GAME_OVER_MENU ENDP
+	UPDATE_WINNER_TEXT PROC NEAR
+		
+		MOV AL,WINNER_INDEX              ;if winner index is 1 => AL,1
+		ADD AL,30h                       ;AL,31h => AL,'1'
+		MOV [TEXT_GAME_OVER_WINNER+7],AL ;update the index in the text with the character
+		
+		RET
+	UPDATE_WINNER_TEXT ENDP
 	CLEAR_SCREEN PROC NEAR
 	MOV AH,00H	; set video mode
 	MOV AL,11h	; bw color graphics
