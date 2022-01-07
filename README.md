@@ -6,7 +6,7 @@
 
 
 <h1 align="center">
-  PingPong 
+  PingPong Supporting
 Artificial Intelligence 
 </h1>
 
