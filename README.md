@@ -69,10 +69,14 @@ And that's it, enjoy your game.
 ## Features
 1. Single Player " support Artificial Intelligence"
 2. Two Player
+3. Option to play again and go to main menu
 <h1 align="center">
   <img  src="https://user-images.githubusercontent.com/66153260/148484362-ffa2fca4-c1da-410b-9614-17170ea67f93.PNG"/>
 </h1>
+<h1 align="center">
+  <img src="https://user-images.githubusercontent.com/66153260/148488330-ba1b8f24-9c3d-4a4c-b161-617c90eff361.PNG"/>
 
+</h1>
 
 ## Support
 Thanks to :
