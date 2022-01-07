@@ -1,4 +1,4 @@
-# Ping-Pong-Game.
+# Ping-Pong Game
 
  <h1 align="center">
   <img src="https://user-images.githubusercontent.com/40550247/72228004-81071600-3581-11ea-9972-1cbe906001ed.png" width="120px" />
@@ -6,27 +6,33 @@
 
 
 <h1 align="center">
-  PingPong Supporting 
+  PingPong 
 Artificial Intelligence 
 </h1>
 
+## Dependencies
+- x86 assembly language
+- DOSBox
+- x86 emulator
+
+## How to play
+At first you shall choose to play in a single mode by pressing '**s**' so choosing the computer to be your second player or multiple mode by pressing '**m**'so you can play it with a friend.
+
+Each player (one could be the computer) controls a paddle by dragging it vertically across the screen's right or left sides.
+
+The first player (the one on the left) drags the left paddle vertically: up by pressing the '**w**' letter and down by pressing the '**s**' letter. 
+
+The second player (the one on the right) drags the left paddle vertically: up by pressing the '**o**' letter and down by pressing the '**l**' letter. In case the second player is the computer you certainly skip pressing the mentioned letters to move the right paddles as the computer is already doing it for you. 
+
+All you have to do to win this game is just scoring your more-than-5-points which you earn by holding your self not making the moving ball to collide with the side you're playing next-to more than 5 times until your friend collects your points for you (of course when the ball collides with the screen side next to him).
+
+Finally when you win and you just liked it enough (we hope) you could press the '**r**' letter to play it again in the same mood you have chosen before or press '**e**' to go back to the main menu (hopefully to try the other mood not to exit). 
+
+And that's it, enjoy your game.
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Quick Start.
+## Quick Start
 
 ### Build the game
 ```console
