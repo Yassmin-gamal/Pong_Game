@@ -64,7 +64,7 @@ CODE SEGMENT PARA 'CODE'
 			JE SHOW_GAME_OVER
 			MOV AH,2Ch 					 ;get the system time
 			INT 21h    					 ;CH = hour CL = minute DH = second DL = 1/100 seconds
-			add dl,55
+			 
 			CMP DL,TIME_AUX  			 ;is the current time equal to the previous one(TIME_AUX)?
 			JE CHECK_TIME 
 			;if it is the same, check again
