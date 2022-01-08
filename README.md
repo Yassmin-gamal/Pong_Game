@@ -12,8 +12,9 @@ Artificial Intelligence
 
 ## Dependencies
 - x86 assembly language
-- DOSBox
-- x86 emulator
+- MASM assembler
+- DOSBox (x86 emulator)
+
 
 ## How to play
 At first you shall choose to play in a single mode by pressing '**s**' so choosing the computer to be your second player or multiple mode by pressing '**m**'so you can play it with a friend.
@@ -34,16 +35,23 @@ And that's it, enjoy your game.
 
 ## Quick Start
 
-### Build the game
+### Asssamble the game
 ```console
  masm /a pong.asm
+```
+## Quick Start
+
+### Link the files 
+```console
+  link Pingpong
 ```
  
 ### Run the game in DOSbox
 
 ```console
- link pong
+  Pingpong
 ```
+
 ### Result 
  
 <h1 align="center">
