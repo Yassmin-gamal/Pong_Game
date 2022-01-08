@@ -37,7 +37,7 @@ And that's it, enjoy your game.
 
 ### Asssamble the game
 ```console
- masm /a pong.asm
+ masm /a Pingpong.asm
 ```
 ## Quick Start
 
